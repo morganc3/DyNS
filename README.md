@@ -3,6 +3,9 @@
 DyNS is a dynamic DNS server, which allows clients to specify which records should be returned. For example, 
 a-record.169.254.169.254.dyns.com would return an A Record for 169.254.169.254
 
+# Usage
+Currently, port 53 is hardcoded. There is a live example of this on dyns.h0.gs
+
 ## Supported Records and Formatting
 Multiple records can be requested at once. This is useful for DNS rebinding attacks.
 For example, a-record.169.254.169.254.a-record.127.0.0.1.cname-record-2.my.cname.dyns.com will return A Records for both IP addresses and a CNAME record for my.cname.
