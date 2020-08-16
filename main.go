@@ -21,10 +21,27 @@ type DNSRecord struct {
 	identifier string
 }
 
+func validDomain(domain string) bool {
+	if len(domain) > MAX_DOMAIN_LENGTH{
+		return false
+	}
+	subdomains := strings.Split(domain, ".")
+	for _, subdomain := range subdomains{
+		if len(subdomain) > MAX_SUBDOMAIN_LENGTH {
+			return false
+		}
+	}
+	return true
+}
+
 func parseAAAARecords(m *dns.Msg, domain string) {
 	subdomains := strings.Split(domain, ".")
 	for ind, subdomain := range subdomains {
 		if subdomain == AAAA.identifier {
+			if (ind + 9 >= len(subdomains)){
+				// incorrect format, would cause error
+				continue
+			}
 			aaaaRecord := ""
 			for i := 0; i < 8; i++ {
 				aaaaRecord += subdomains[ind+i+1] + ":"
@@ -39,6 +56,10 @@ func parseARecords(m *dns.Msg, domain string){
 	subdomains := strings.Split(domain, ".")
 	for ind, subdomain := range subdomains {
 		if subdomain == A.identifier {
+			if (ind + 5 >= len(subdomains)){
+				// incorrect format, would cause error
+				continue
+			}
 			aRecord := ""
 			for i := 0; i < 4; i++ {
 				aRecord += subdomains[ind+i+1] + "."
@@ -64,6 +85,10 @@ func parseCNameRecords(m *dns.Msg, domain string) {
 			
 			cNameRecord := "" 
 			
+			if (ind + subCount + 1 >= len(subdomains)){
+				// incorrect format, would cause error
+				continue
+			}
 			for i := 0; i < subCount; i++ {
 				cNameRecord += subdomains[ind+i+1] + "."
 			}
@@ -86,7 +111,7 @@ func parseQuery(m *dns.Msg) {
 		switch q.Qtype {
 		case dns.TypeA:
 			log.Printf("Query for %s\n", q.Name)
-			if len(q.Name) > MAX_DOMAIN_LENGTH {
+			if !validDomain(q.Name) {
 				return
 			}
 			
