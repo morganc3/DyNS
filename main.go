@@ -110,14 +110,14 @@ func parseQuery(m *dns.Msg) {
 	for _, q := range m.Question {
 		switch q.Qtype {
 		case dns.TypeA:
-			log.Printf("Query for %s\n", q.Name)
+			//log.Printf("Query for %s\n", q.Name)
 			if !validDomain(q.Name) {
 				return
 			}
 			
-			parseCNameRecords(m, q.Name)
 			parseARecords(m, q.Name)
 			parseAAAARecords(m, q.Name)
+			parseCNameRecords(m, q.Name)
 
 		}
 	}
