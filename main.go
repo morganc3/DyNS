@@ -70,32 +70,46 @@ func parseARecords(m *dns.Msg, domain string){
 	}
 }
 
-func parseCNameRecords(m *dns.Msg, domain string) {
+func parseCNameAndAliasRecords(m *dns.Msg, domain string) {
 	subdomains := strings.Split(domain, ".")
 	for ind, subdomain := range subdomains {
-		if cNameMatch, _ := regexp.Match(`cname\-record\-\d+`, []byte(subdomain)); cNameMatch {
+		identifier := ""
+		name := ""
+
+		cNameMatch, _ := regexp.Match(`cname\-record\-\d+`, []byte(subdomain))
+		aliasMatch, _ :=  regexp.Match(`alias\-record\-\d+`, []byte(subdomain))
+		if cNameMatch {
+			identifier = CNAME.identifier
+			name = CNAME.name	
+		} else {
+			identifier = ALIAS.identifier
+			name = ALIAS.name
+		}
+
+		if aliasMatch || cNameMatch {
 			// get count of subdomains in cname record
 			// example: cname-record-4.this.is.my.cname.example.com
 			// would return this.is.my.cname
 			
-			subCount, err := strconv.Atoi(subdomain[len(CNAME.identifier):])
+			subCount, err := strconv.Atoi(subdomain[len(identifier):])
 			if err != nil {
 				continue
 			}
 			
-			cNameRecord := "" 
+			record := "" 
 			
 			if (ind + subCount + 1 >= len(subdomains)){
 				// incorrect format, would cause error
 				continue
 			}
 			for i := 0; i < subCount; i++ {
-				cNameRecord += subdomains[ind+i+1] + "."
+				record += subdomains[ind+i+1] + "."
 			}
 			
-			addRecord(m, domain, CNAME.name, cNameRecord)
+			addRecord(m, domain, name, record)
 
 		} 
+
 	}
 }
 
@@ -115,9 +129,10 @@ func parseQuery(m *dns.Msg) {
 				return
 			}
 			
+			parseCNameAndAliasRecords(m, q.Name)
 			parseARecords(m, q.Name)
 			parseAAAARecords(m, q.Name)
-			parseCNameRecords(m, q.Name)
+			
 
 		}
 	}
