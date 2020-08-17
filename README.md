@@ -1,7 +1,7 @@
 # DyNS
 
 DyNS is a dynamic DNS server, which allows clients to specify which records should be returned. For example, 
-a-record.169.254.169.254.dyns.com would return an A Record for 169.254.169.254
+`a-record.169.254.169.254.dyns.com` would return an A Record for 169.254.169.254
 
 # Usage
 Currently, port 53 is hardcoded. There is a live example of this on dyns.in
