@@ -3,30 +3,31 @@ package main
 import (
 	"fmt"
 	"log"
+	"regexp"
 	"strconv"
 	"strings"
-	"regexp"
+
 	"github.com/miekg/dns"
 )
 
 const (
 	MAX_SUBDOMAIN_LENGTH = 63
-	MAX_DOMAIN_LENGTH = 253
+	MAX_DOMAIN_LENGTH    = 253
 )
 
-type RecordParser func (string, string) (string, error)
+type RecordParser func(string, string) (string, error)
 
 type DNSRecord struct {
-	name string
+	name       string
 	identifier string
 }
 
 func validDomain(domain string) bool {
-	if len(domain) > MAX_DOMAIN_LENGTH{
+	if len(domain) > MAX_DOMAIN_LENGTH {
 		return false
 	}
 	subdomains := strings.Split(domain, ".")
-	for _, subdomain := range subdomains{
+	for _, subdomain := range subdomains {
 		if len(subdomain) > MAX_SUBDOMAIN_LENGTH {
 			return false
 		}
@@ -38,7 +39,7 @@ func parseAAAARecords(m *dns.Msg, domain string) {
 	subdomains := strings.Split(domain, ".")
 	for ind, subdomain := range subdomains {
 		if subdomain == AAAA.identifier {
-			if (ind + 9 >= len(subdomains)){
+			if ind+9 >= len(subdomains) {
 				// incorrect format, would cause error
 				continue
 			}
@@ -52,11 +53,11 @@ func parseAAAARecords(m *dns.Msg, domain string) {
 	}
 }
 
-func parseARecords(m *dns.Msg, domain string){
+func parseARecords(m *dns.Msg, domain string) {
 	subdomains := strings.Split(domain, ".")
 	for ind, subdomain := range subdomains {
 		if subdomain == A.identifier {
-			if (ind + 5 >= len(subdomains)){
+			if ind+5 >= len(subdomains) {
 				// incorrect format, would cause error
 				continue
 			}
@@ -73,51 +74,46 @@ func parseARecords(m *dns.Msg, domain string){
 func parseCNameAndAliasRecords(m *dns.Msg, domain string) {
 	subdomains := strings.Split(domain, ".")
 	for ind, subdomain := range subdomains {
-		identifier := ""
-		name := ""
 
 		cNameMatch, _ := regexp.Match(`cname\-record\-\d+`, []byte(subdomain))
-		aliasMatch, _ :=  regexp.Match(`alias\-record\-\d+`, []byte(subdomain))
-		if cNameMatch {
-			identifier = CNAME.identifier
-			name = CNAME.name	
-		} else {
-			identifier = ALIAS.identifier
-			name = ALIAS.name
-		}
 
-		if aliasMatch || cNameMatch {
-			// get count of subdomains in cname record
+		if cNameMatch {
+			// get count of subdomains in alias/cname record
 			// example: cname-record-4.this.is.my.cname.example.com
 			// would return this.is.my.cname
-			
-			subCount, err := strconv.Atoi(subdomain[len(identifier):])
+
+			subCount, err := strconv.Atoi(subdomain[len(CNAME.identifier):])
 			if err != nil {
 				continue
 			}
-			
-			record := "" 
-			
-			if (ind + subCount + 1 >= len(subdomains)){
+
+			target := ""
+
+			if ind+subCount+1 >= len(subdomains) {
 				// incorrect format, would cause error
 				continue
 			}
 			for i := 0; i < subCount; i++ {
-				record += subdomains[ind+i+1] + "."
+				target += subdomains[ind+i+1] + "."
 			}
-			
-			addRecord(m, domain, name, record)
 
-		} 
+			addRecord(m, domain, CNAME.name, target)
+
+		}
 
 	}
 }
 
-func addRecord(m *dns.Msg, name string,  recordType string, value string){
-	rr, err := dns.NewRR(fmt.Sprintf("%s %s %s", name, recordType, value))
+func addRecord(m *dns.Msg, domain string, recordType string, target string) {
+	var err error
+	var rr dns.RR
+
+	rr, err = dns.NewRR(fmt.Sprintf("%s %s %s", domain, recordType, target))
+
 	if err == nil {
 		m.Answer = append(m.Answer, rr)
 	}
+
 }
 
 func parseQuery(m *dns.Msg) {
@@ -128,11 +124,10 @@ func parseQuery(m *dns.Msg) {
 			if !validDomain(q.Name) {
 				return
 			}
-			
+
 			parseCNameAndAliasRecords(m, q.Name)
 			parseARecords(m, q.Name)
 			parseAAAARecords(m, q.Name)
-			
 
 		}
 	}
